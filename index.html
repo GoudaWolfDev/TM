@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intuiti - Task Organizer & AI Chatbot</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@3.9.4/dist/full.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.min.js"></script>
+</head>
+
+<body class="bg-gray-900 text-gray-200 min-h-screen flex flex-col items-center p-4">
+
+    <div id="app" class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+        <!-- Task Organizer Section -->
+        <div class="bg-gray-800 p-6 rounded-lg shadow-lg flex flex-col">
+            <h2 class="text-2xl font-bold mb-4 text-indigo-500">📋 Task Organizer</h2>
+            <div class="mb-4">
+                <input v-model="taskTitle" placeholder="Task Title"
+                    class="input input-bordered w-full mb-2 p-3 bg-gray-700 text-white placeholder-gray-400" />
+                <select v-model="taskUrgency" class="select select-bordered w-full mb-2 bg-gray-700 text-white">
+                    <option disabled value="">Select Urgency</option>
+                    <option value="urgent">Urgent</option>
+                    <option value="notUrgent">Not Urgent</option>
+                </select>
+                <select v-model="taskImportance" class="select select-bordered w-full mb-2 bg-gray-700 text-white">
+                    <option disabled value="">Select Importance</option>
+                    <option value="important">Important</option>
+                    <option value="notImportant">Not Important</option>
+                </select>
+                <button @click="addTask" class="btn btn-primary w-full mb-2">Add Task</button>
+                <button @click="confirmClear('tasks')" class="btn btn-error w-full">Clear Tasks</button>
+            </div>
+            <div class="space-y-4 overflow-y-auto flex-1">
+                <div v-for="(tasks, category) in categorizedTasks" :key="category">
+                    <h3 class="text-xl font-bold text-indigo-400">{{ category }}</h3>
+                    <ul class="list-disc list-inside">
+                        <li v-for="(task, index) in tasks" :key="index" class="mb-2 flex justify-between items-center">
+                            {{ task.title }}
+                            <button @click="removeTask(category, index)" class="btn btn-sm btn-error">Delete</button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Chatbot Section -->
+        <div class="bg-gray-800 p-6 rounded-lg shadow-lg flex flex-col">
+            <h2 class="text-2xl font-bold mb-4 text-indigo-500">🤖 AI Chatbot</h2>
+            <div class="flex-1 overflow-y-auto space-y-4 p-4 bg-gray-700 rounded-lg mb-4">
+                <div v-for="(message, index) in messages" :key="index" :class="{
+                        'text-left': message.role === 'user',
+                        'text-right': message.role === 'assistant'
+                    }">
+                    <p :class="message.role === 'user' ? 'text-green-400' : 'text-blue-400'">
+                        <strong>{{ message.role }}:</strong> {{ message.content }}
+                    </p>
+                </div>
+            </div>
+            <input v-model="inputMessage" placeholder="Type a message..."
+                class="input input-bordered w-full mb-2 p-3 bg-gray-700 text-white placeholder-gray-400" />
+            <div class="flex flex-col space-y-2">
+                <button @click="sendMessage" class="btn btn-primary w-full">Send</button>
+                <button @click="confirmClear('messages')" class="btn btn-error w-full">Clear Chat</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script type="module">
+        new Vue({
+            el: '#app',
+            data: {
+                // Task Organizer Data
+                taskTitle: '',
+                taskUrgency: '',
+                taskImportance: '',
+                tasks: JSON.parse(localStorage.getItem('tasks')) || [],
+                // AI Chatbot Data
+                inputMessage: '',
+                messages: JSON.parse(localStorage.getItem('messages')) || []
+            },
+            computed: {
+                categorizedTasks() {
+                    const categories = {
+                        'Urgent & Important': [],
+                        'Urgent & Not Important': [],
+                        'Not Urgent & Important': [],
+                        'Not Urgent & Not Important': []
+                    };
+                    this.tasks.forEach(task => {
+                        if (task.urgency === 'urgent' && task.importance === 'important') {
+                            categories['Urgent & Important'].push(task);
+                        } else if (task.urgency === 'urgent' && task.importance === 'notImportant') {
+                            categories['Urgent & Not Important'].push(task);
+                        } else if (task.urgency === 'notUrgent' && task.importance === 'important') {
+                            categories['Not Urgent & Important'].push(task);
+                        } else {
+                            categories['Not Urgent & Not Important'].push(task);
+                        }
+                    });
+                    return categories;
+                }
+            },
+            methods: {
+                addTask() {
+                    if (this.taskTitle && this.taskUrgency && this.taskImportance) {
+                        this.tasks.push({
+                            title: this.taskTitle,
+                            urgency: this.taskUrgency,
+                            importance: this.taskImportance
+                        });
+                        this.taskTitle = '';
+                        this.taskUrgency = '';
+                        this.taskImportance = '';
+                        this.saveTasks();
+                    }
+                },
+                removeTask(category, index) {
+                    this.tasks.splice(index, 1);
+                    this.saveTasks();
+                },
+                saveTasks() {
+                    localStorage.setItem('tasks', JSON.stringify(this.tasks));
+                },
+                async sendMessage() {
+                    if (this.inputMessage.trim()) {
+                        const userMessage = { role: 'user', content: this.inputMessage };
+                        this.messages.push(userMessage);
+                        this.inputMessage = '';
+                        this.saveMessages();
+
+                        const assistantResponse = await this.generateText(this.messages);
+                        this.messages.push({ role: 'assistant', content: assistantResponse });
+                        this.saveMessages();
+                    }
+                },
+                saveMessages() {
+                    localStorage.setItem('messages', JSON.stringify(this.messages));
+                },
+                confirmClear(type) {
+                    const confirmDelete = confirm('Are you sure you want to clear this?');
+                    if (confirmDelete) {
+                        if (type === 'tasks') {
+                            this.tasks = [];
+                            localStorage.removeItem('tasks');
+                        } else if (type === 'messages') {
+                            this.messages = [];
+                            localStorage.removeItem('messages');
+                        }
+                    }
+                },
+                async generateText(messages) {
+                    const { HfInference } = await import('https://esm.sh/@huggingface/inference');
+                    const hf = new HfInference('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');
+
+                    const response = await hf.chatCompletion({
+                        model: "mistralai/Mixtral-8x7B-Instruct-v0.1",
+                        messages: messages,
+                        max_tokens: 500,
+                        temperature: 0.1
+                    });
+
+                    return response.choices[0].message.content;
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>
