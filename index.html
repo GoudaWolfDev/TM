@@ -5,6 +5,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Intuiti - Task Organizer & AI Chatbot</title>
+    <link rel="shortcut icon" href="favpng_artificial-intelligence-icon-brain-icon-ai-icon.png" type="image/x-icon">
+    
+    <!-- Font Awesome Link for Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    
+    <!-- Favicon with Font Awesome Icon -->
+    <link rel="icon" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/svgs/solid/robot.svg" type="image/svg+xml">
+
+    <!-- DaisyUI and TailwindCSS -->
     <link href="https://cdn.jsdelivr.net/npm/daisyui@3.9.4/dist/full.css" rel="stylesheet" type="text/css" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.min.js"></script>
@@ -58,6 +67,10 @@
                         <strong>{{ message.role }}:</strong> {{ message.content }}
                     </p>
                 </div>
+                <!-- Typing Indicator -->
+                <div v-if="isTyping" class="text-center text-gray-400">
+                    <i class="fas fa-spinner fa-spin"></i> AI is typing...
+                </div>
             </div>
             <input v-model="inputMessage" placeholder="Type a message..."
                 class="input input-bordered w-full mb-2 p-3 bg-gray-700 text-white placeholder-gray-400" />
@@ -80,7 +93,8 @@
                 tasks: JSON.parse(localStorage.getItem('tasks')) || [],
                 // AI Chatbot Data
                 inputMessage: '',
-                messages: JSON.parse(localStorage.getItem('messages')) || []
+                messages: JSON.parse(localStorage.getItem('messages')) || [],
+                isTyping: false,  // New property to manage typing indicator
             },
             computed: {
                 categorizedTasks() {
@@ -132,7 +146,14 @@
                         this.inputMessage = '';
                         this.saveMessages();
 
+                        // Show typing indicator before generating AI response
+                        this.isTyping = true;
+
                         const assistantResponse = await this.generateText(this.messages);
+
+                        // Hide typing indicator after receiving AI response
+                        this.isTyping = false;
+
                         this.messages.push({ role: 'assistant', content: assistantResponse });
                         this.saveMessages();
                     }
