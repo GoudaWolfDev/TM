@@ -57,7 +57,9 @@
 
         <!-- AI Chatbot Section -->
         <div class="bg-gray-800 p-6 rounded-lg shadow-lg flex flex-col">
-            <h2 class="text-2xl font-bold mb-4 text-indigo-500">🤖 AI Chatbot</h2>
+            <h2 class="text-2xl font-bold mb-4 text-indigo-500 flex items-center">
+    <img src="favpng_artificial-intelligence-icon-brain-icon-ai-icon.png" width="50" class="mr-2"> AI Chatbot</h2>
+
             <div class="flex-1 overflow-y-auto space-y-4 p-4 bg-gray-700 rounded-lg mb-4">
                 <div v-for="(message, index) in messages" :key="index" :class="{
                         'text-left': message.role === 'user',
